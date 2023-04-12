@@ -13,14 +13,67 @@ import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
+  const [filteredStudents, setFilteredStudents] = useState<Person[]>([])
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
   useEffect(() => {
     void getStudents()
   }, [getStudents])
 
-  const onToolbarAction = (action: ToolbarAction) => {
+  const onSearch = (search?: string) => {
+    console.log(search)
+    if (!search) {
+      setFilteredStudents(data?.students || [])
+      return
+    }
+    const filtered = (data?.students || []).filter((student) => {
+      const fullName = `${student.first_name} ${student.last_name}`.toLowerCase()
+      console.log(fullName.includes(search.toLowerCase()))
+      return fullName.includes(search.toLowerCase())
+    })
+    console.log(filtered)
+    setFilteredStudents(filtered)
+  }
+
+  const onToolbarAction = (action: ToolbarAction, value?: string) => {
     if (action === "roll") {
       setIsRollMode(true)
+    }
+    if (action === "sort") {
+      const newSortOrder = sortOrder === "asc" ? "desc" : "asc"
+      setSortOrder(newSortOrder)
+      sortStudents(sortOrder, value)
+    }
+  }
+
+  const sortStudents = (order: "asc" | "desc", value?: string) => {
+    console.log(order)
+    if (value === "firstname") {
+      const sorted = [...(data?.students || [])].sort((a, b) => {
+        const nameA = a.first_name.toUpperCase()
+        const nameB = b.first_name.toUpperCase()
+        if (nameA < nameB) {
+          return order === "asc" ? -1 : 1
+        }
+        if (nameA > nameB) {
+          return order === "asc" ? 1 : -1
+        }
+        return 0
+      })
+      setFilteredStudents(sorted)
+    } else {
+      const sorted = [...(data?.students || [])].sort((a, b) => {
+        const nameA = a.last_name.toUpperCase()
+        const nameB = b.last_name.toUpperCase()
+        if (nameA < nameB) {
+          return order === "asc" ? -1 : 1
+        }
+        if (nameA > nameB) {
+          return order === "asc" ? 1 : -1
+        }
+        return 0
+      })
+      setFilteredStudents(sorted)
     }
   }
 
@@ -33,7 +86,7 @@ export const HomeBoardPage: React.FC = () => {
   return (
     <>
       <S.PageContainer>
-        <Toolbar onItemClick={onToolbarAction} />
+        <Toolbar onItemClick={onToolbarAction} sortOrder={sortOrder} onSearch={onSearch} />
 
         {loadState === "loading" && (
           <CenteredContainer>
@@ -43,7 +96,7 @@ export const HomeBoardPage: React.FC = () => {
 
         {loadState === "loaded" && data?.students && (
           <>
-            {data.students.map((s) => (
+            {(filteredStudents.length > 0 ? filteredStudents : data?.students).map((s) => (
               <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
             ))}
           </>
@@ -63,13 +116,24 @@ export const HomeBoardPage: React.FC = () => {
 type ToolbarAction = "roll" | "sort"
 interface ToolbarProps {
   onItemClick: (action: ToolbarAction, value?: string) => void
+  onSearch: (search?: string) => void
+  sortOrder: string
 }
+
 const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const { onItemClick } = props
+  const { onItemClick, sortOrder, onSearch } = props
+  const [sortValue, setSortValue] = useState<string>("firstname")
+
   return (
     <S.ToolbarContainer>
-      <div onClick={() => onItemClick("sort")}>First Name</div>
-      <div>Search</div>
+      <S.SortContainer>
+        <S.Select id="sort" value={sortValue} onChange={(event) => setSortValue(event.target.value as string)}>
+          <S.Option value="firstname">First Name</S.Option>
+          <S.Option value="lastname">Last Name</S.Option>
+        </S.Select>
+        <S.Button onClick={() => onItemClick("sort", sortValue)}>{sortOrder === "asc" ? "↓" : "↑"}</S.Button>
+      </S.SortContainer>
+      <S.Search onChange={(event) => onSearch(event.target.value)} type="text" placeholder="Search" name="search" />
       <S.Button onClick={() => onItemClick("roll")}>Start Roll</S.Button>
     </S.ToolbarContainer>
   )
@@ -98,5 +162,25 @@ const S = {
       font-weight: ${FontWeight.strong};
       border-radius: ${BorderRadius.default};
     }
+  `,
+  SortContainer: styled.div`
+    display: flex;
+    justify-content: space-betwen;
+    align-items: center;
+  `,
+  Select: styled.select`
+    border: none;
+    background: transparent;
+    color: ${Colors.white.base};
+  `,
+  Option: styled.option`
+    color: ${Colors.dark.base};
+  `,
+  Search: styled.input`
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid black;
+    color: ${Colors.white.base};
+    outline: none;
   `,
 }
