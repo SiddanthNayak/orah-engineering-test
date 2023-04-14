@@ -5,12 +5,30 @@ import { Images } from "assets/images"
 import { Colors } from "shared/styles/colors"
 import { Person, PersonHelper } from "shared/models/person"
 import { RollStateSwitcher } from "staff-app/components/roll-state/roll-state-switcher.component"
+import { RollInput, RolllStateType } from "shared/models/roll"
 
 interface Props {
   isRollMode?: boolean
   student: Person
+  rollInput?: RollInput
+  onRollStateChange?: (rollInput: RollInput) => void
 }
-export const StudentListTile: React.FC<Props> = ({ isRollMode, student }) => {
+
+export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollInput, onRollStateChange }) => {
+  const handleStateChange = (newState: RolllStateType) => {
+    const index = rollInput?.student_roll_states.findIndex((s) => s.student_id === student.id)
+
+    if (index !== undefined && index >= 0) {
+      rollInput!.student_roll_states[index].roll_state = newState
+    } else {
+      rollInput?.student_roll_states.push({ student_id: student.id, roll_state: newState })
+    }
+
+    if (onRollStateChange) {
+      onRollStateChange(rollInput!)
+    }
+  }
+
   return (
     <S.Container>
       <S.Avatar url={Images.avatar}></S.Avatar>
@@ -19,7 +37,7 @@ export const StudentListTile: React.FC<Props> = ({ isRollMode, student }) => {
       </S.Content>
       {isRollMode && (
         <S.Roll>
-          <RollStateSwitcher />
+          <RollStateSwitcher onStateChange={(newState) => handleStateChange(newState)} />
         </S.Roll>
       )}
     </S.Container>

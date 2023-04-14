@@ -9,34 +9,56 @@ import { Person } from "shared/models/person"
 import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
+import { RollInput } from "shared/models/roll"
+
+interface RollCounts {
+  all: number
+  present: number
+  late: number
+  absent: number
+}
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
+  const [callApi] = useApi({ url: "save-roll" })
   const [filteredStudents, setFilteredStudents] = useState<Person[]>([])
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+  const [rollInput, setRollInput] = useState<RollInput>({ student_roll_states: [] })
+  const [rollCounts, setRollCounts] = useState<RollCounts>({ all: data?.students.length || 0, present: 0, late: 0, absent: 0 })
+
+  const handleRollStateChange = (newRollInput: RollInput) => {
+    setRollInput(newRollInput)
+    getRollCount()
+  }
 
   useEffect(() => {
     void getStudents()
   }, [getStudents])
 
+  const getRollCount = () => {
+    const present = rollInput?.student_roll_states.filter((s) => s.roll_state === "present")?.length || 0
+    const late = rollInput?.student_roll_states.filter((s) => s.roll_state === "late")?.length || 0
+    const absent = rollInput?.student_roll_states.filter((s) => s.roll_state === "absent")?.length || 0
+    setRollCounts({ ...rollCounts, present, late, absent })
+  }
+
   const onSearch = (search?: string) => {
-    console.log(search)
     if (!search) {
       setFilteredStudents(data?.students || [])
       return
     }
     const filtered = (data?.students || []).filter((student) => {
       const fullName = `${student.first_name} ${student.last_name}`.toLowerCase()
-      console.log(fullName.includes(search.toLowerCase()))
       return fullName.includes(search.toLowerCase())
     })
-    console.log(filtered)
     setFilteredStudents(filtered)
   }
 
   const onToolbarAction = (action: ToolbarAction, value?: string) => {
     if (action === "roll") {
+      const all = data?.students?.length || 0
+      setRollCounts({ ...rollCounts, all })
       setIsRollMode(true)
     }
     if (action === "sort") {
@@ -47,7 +69,6 @@ export const HomeBoardPage: React.FC = () => {
   }
 
   const sortStudents = (order: "asc" | "desc", value?: string) => {
-    console.log(order)
     if (value === "firstname") {
       const sorted = [...(data?.students || [])].sort((a, b) => {
         const nameA = a.first_name.toUpperCase()
@@ -79,7 +100,12 @@ export const HomeBoardPage: React.FC = () => {
 
   const onActiveRollAction = (action: ActiveRollAction) => {
     if (action === "exit") {
+      setRollInput({ student_roll_states: [] })
       setIsRollMode(false)
+    }
+    if (action === "save") {
+      setIsRollMode(false)
+      callApi(rollInput)
     }
   }
 
@@ -97,7 +123,7 @@ export const HomeBoardPage: React.FC = () => {
         {loadState === "loaded" && data?.students && (
           <>
             {(filteredStudents.length > 0 ? filteredStudents : data?.students).map((s) => (
-              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
+              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} rollInput={rollInput} onRollStateChange={handleRollStateChange} />
             ))}
           </>
         )}
@@ -108,7 +134,7 @@ export const HomeBoardPage: React.FC = () => {
           </CenteredContainer>
         )}
       </S.PageContainer>
-      <ActiveRollOverlay isActive={isRollMode} onItemClick={onActiveRollAction} />
+      <ActiveRollOverlay isActive={isRollMode} onItemClick={onActiveRollAction} rollCounts={rollCounts} />
     </>
   )
 }
