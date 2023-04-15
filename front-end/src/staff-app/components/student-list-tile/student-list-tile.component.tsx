@@ -10,22 +10,22 @@ import { RollInput, RolllStateType } from "shared/models/roll"
 interface Props {
   isRollMode?: boolean
   student: Person
-  rollInput?: RollInput
+  rollInput: RollInput
   onRollStateChange?: (rollInput: RollInput) => void
 }
 
 export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollInput, onRollStateChange }) => {
   const handleStateChange = (newState: RolllStateType) => {
-    const index = rollInput?.student_roll_states.findIndex((s) => s.student_id === student.id)
+    const index = rollInput.student_roll_states.findIndex((s) => s.student_id === student.id)
 
     if (index !== undefined && index >= 0) {
-      rollInput!.student_roll_states[index].roll_state = newState
+      rollInput.student_roll_states[index].roll_state = newState
     } else {
-      rollInput?.student_roll_states.push({ student_id: student.id, roll_state: newState })
+      rollInput.student_roll_states.push({ student_id: student.id, roll_state: newState })
     }
 
     if (onRollStateChange) {
-      onRollStateChange(rollInput!)
+      onRollStateChange(rollInput)
     }
   }
 
