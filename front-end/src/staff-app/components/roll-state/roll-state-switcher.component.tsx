@@ -9,7 +9,6 @@ interface Props {
 }
 export const RollStateSwitcher: React.FC<Props> = ({ initialState = "unmark", size = 40, onStateChange }) => {
   const [rollState, setRollState] = useState(initialState)
-
   const nextState = () => {
     const states: RolllStateType[] = ["present", "late", "absent"]
     if (rollState === "unmark" || rollState === "absent") return states[0]

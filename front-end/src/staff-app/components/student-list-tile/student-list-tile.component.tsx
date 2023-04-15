@@ -5,28 +5,21 @@ import { Images } from "assets/images"
 import { Colors } from "shared/styles/colors"
 import { Person, PersonHelper } from "shared/models/person"
 import { RollStateSwitcher } from "staff-app/components/roll-state/roll-state-switcher.component"
-import { RollInput, RolllStateType } from "shared/models/roll"
-
+import { RolllStateType } from "shared/models/roll"
+import { updateRollState } from "../../store/roll-slice"
+import { useDispatch } from "react-redux"
+import { updateStudentRoll } from "../../store/student-slice"
 interface Props {
   isRollMode?: boolean
   student: Person
-  rollInput: RollInput
-  onRollStateChange?: (rollInput: RollInput) => void
 }
 
-export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollInput, onRollStateChange }) => {
+export const StudentListTile: React.FC<Props> = ({ isRollMode, student }) => {
+  const dispatch = useDispatch()
+
   const handleStateChange = (newState: RolllStateType) => {
-    const index = rollInput.student_roll_states.findIndex((s) => s.student_id === student.id)
-
-    if (index !== undefined && index >= 0) {
-      rollInput.student_roll_states[index].roll_state = newState
-    } else {
-      rollInput.student_roll_states.push({ student_id: student.id, roll_state: newState })
-    }
-
-    if (onRollStateChange) {
-      onRollStateChange(rollInput)
-    }
+    dispatch(updateRollState({ student_id: student.id, roll_state: newState }))
+    dispatch(updateStudentRoll({ student_id: student.id, roll_state: newState }))
   }
 
   return (
@@ -37,7 +30,7 @@ export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollInpu
       </S.Content>
       {isRollMode && (
         <S.Roll>
-          <RollStateSwitcher onStateChange={(newState) => handleStateChange(newState)} />
+          <RollStateSwitcher initialState={student.roll_state} onStateChange={handleStateChange} />
         </S.Roll>
       )}
     </S.Container>

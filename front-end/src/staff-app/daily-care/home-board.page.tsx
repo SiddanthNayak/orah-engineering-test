@@ -9,8 +9,11 @@ import { Person } from "shared/models/person"
 import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
-import { RollInput } from "shared/models/roll"
-
+import { useSelector } from "react-redux"
+import { RootState } from "../store/store"
+import { useDispatch } from "react-redux"
+import { resetRollInput } from "../store/roll-slice"
+import { setStudents } from "staff-app/store/student-slice"
 interface RollCounts {
   all: number
   present: number
@@ -24,22 +27,29 @@ export const HomeBoardPage: React.FC = () => {
   const [callApi] = useApi({ url: "save-roll" })
   const [filteredStudents, setFilteredStudents] = useState<Person[]>([])
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [rollInput, setRollInput] = useState<RollInput>({ student_roll_states: [] })
   const [rollCounts, setRollCounts] = useState<RollCounts>({ all: data?.students.length || 0, present: 0, late: 0, absent: 0 })
-
-  const handleRollStateChange = (newRollInput: RollInput) => {
-    setRollInput(newRollInput)
-    getRollCount()
-  }
+  const rollInput = useSelector((state: RootState) => state.reducer.rolls.data)
+  const studentList = useSelector((state: RootState) => state.reducer.students.students)
+  const dispatch = useDispatch()
 
   useEffect(() => {
     void getStudents()
   }, [getStudents])
 
+  useEffect(() => {
+    getRollCount()
+  }, [rollInput])
+
+  useEffect(() => {
+    if (data) {
+      dispatch(setStudents(data?.students))
+    }
+  }, [data])
+
   const getRollCount = () => {
-    const present = rollInput?.student_roll_states.filter((s) => s.roll_state === "present")?.length || 0
-    const late = rollInput?.student_roll_states.filter((s) => s.roll_state === "late")?.length || 0
-    const absent = rollInput?.student_roll_states.filter((s) => s.roll_state === "absent")?.length || 0
+    const present = rollInput.student_roll_states.filter((s) => s.roll_state === "present").length || 0
+    const late = rollInput.student_roll_states.filter((s) => s.roll_state === "late").length || 0
+    const absent = rollInput.student_roll_states.filter((s) => s.roll_state === "absent").length || 0
     setRollCounts({ ...rollCounts, present, late, absent })
   }
 
@@ -57,7 +67,7 @@ export const HomeBoardPage: React.FC = () => {
 
   const onToolbarAction = (action: ToolbarAction, value?: string) => {
     if (action === "roll") {
-      const all = data?.students?.length || 0
+      const all = data?.students.length || 0
       setRollCounts({ ...rollCounts, all })
       setIsRollMode(true)
     }
@@ -98,14 +108,26 @@ export const HomeBoardPage: React.FC = () => {
     }
   }
 
-  const onActiveRollAction = (action: ActiveRollAction) => {
+  const onActiveRollAction = (action: ActiveRollAction, value?: string) => {
     if (action === "exit") {
-      setRollInput({ student_roll_states: [] })
+      dispatch(resetRollInput())
+      if (data) {
+        dispatch(setStudents(data?.students))
+      }
+      setFilteredStudents([])
       setIsRollMode(false)
     }
     if (action === "save") {
       setIsRollMode(false)
       callApi(rollInput)
+      dispatch(resetRollInput())
+    }
+    if (action === "filter") {
+      if (value === "all") {
+        setFilteredStudents(studentList)
+      } else {
+        setFilteredStudents(studentList.filter((s) => s.roll_state === value))
+      }
     }
   }
 
@@ -123,7 +145,7 @@ export const HomeBoardPage: React.FC = () => {
         {loadState === "loaded" && data?.students && (
           <>
             {(filteredStudents.length > 0 ? filteredStudents : data?.students).map((s) => (
-              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} rollInput={rollInput} onRollStateChange={handleRollStateChange} />
+              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
             ))}
           </>
         )}
@@ -153,7 +175,7 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
   return (
     <S.ToolbarContainer>
       <S.SortContainer>
-        <S.Select id="sort" value={sortValue} onChange={(event) => setSortValue(event.target.value as string)}>
+        <S.Select id="sort" value={sortValue} onChange={(event) => setSortValue(event.target.value)}>
           <S.Option value="firstname">First Name</S.Option>
           <S.Option value="lastname">Last Name</S.Option>
         </S.Select>
