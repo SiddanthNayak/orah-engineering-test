@@ -11,6 +11,7 @@ export const Colors = {
     base: "#4e4e4e",
   },
   blue: {
+    lighter: "#D5E5F5",
     /* Primary theme color */
     base: "#343f64",
     /* Default text color */

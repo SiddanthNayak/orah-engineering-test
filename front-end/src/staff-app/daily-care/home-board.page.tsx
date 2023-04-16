@@ -121,12 +121,19 @@ export const HomeBoardPage: React.FC = () => {
       setIsRollMode(false)
       callApi(rollInput)
       dispatch(resetRollInput())
+      if (data) {
+        dispatch(setStudents(data?.students))
+      }
+      setFilteredStudents([])
     }
     if (action === "filter") {
       if (value === "all") {
         setFilteredStudents(studentList)
       } else {
-        setFilteredStudents(studentList.filter((s) => s.roll_state === value))
+        const newList = studentList.filter((s) => s.roll_state === value)
+        if (newList.length > 0) {
+          setFilteredStudents(newList)
+        }
       }
     }
   }
