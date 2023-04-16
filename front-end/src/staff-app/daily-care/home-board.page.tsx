@@ -55,10 +55,10 @@ export const HomeBoardPage: React.FC = () => {
 
   const onSearch = (search?: string) => {
     if (!search) {
-      setFilteredStudents(data?.students || [])
+      setFilteredStudents(studentList)
       return
     }
-    const filtered = (data?.students || []).filter((student) => {
+    const filtered = studentList.filter((student) => {
       const fullName = `${student.first_name} ${student.last_name}`.toLowerCase()
       return fullName.includes(search.toLowerCase())
     })
@@ -80,7 +80,7 @@ export const HomeBoardPage: React.FC = () => {
 
   const sortStudents = (order: "asc" | "desc", value?: string) => {
     if (value === "firstname") {
-      const sorted = [...(data?.students || [])].sort((a, b) => {
+      const sorted = [...(studentList || [])].sort((a, b) => {
         const nameA = a.first_name.toUpperCase()
         const nameB = b.first_name.toUpperCase()
         if (nameA < nameB) {
@@ -93,7 +93,7 @@ export const HomeBoardPage: React.FC = () => {
       })
       setFilteredStudents(sorted)
     } else {
-      const sorted = [...(data?.students || [])].sort((a, b) => {
+      const sorted = [...(studentList || [])].sort((a, b) => {
         const nameA = a.last_name.toUpperCase()
         const nameB = b.last_name.toUpperCase()
         if (nameA < nameB) {
@@ -149,9 +149,9 @@ export const HomeBoardPage: React.FC = () => {
           </CenteredContainer>
         )}
 
-        {loadState === "loaded" && data?.students && (
+        {loadState === "loaded" && studentList && (
           <>
-            {(filteredStudents.length > 0 ? filteredStudents : data?.students).map((s) => (
+            {(filteredStudents.length > 0 ? filteredStudents : studentList).map((s) => (
               <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
             ))}
           </>
